@@ -1,0 +1,24 @@
+# Node
+node_modules
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml
+
+# Next.js
+.next
+out
+
+# Build outputs
+dist
+*.log
+
+# Mac/Editor
+.DS_Store
+*.swp
+.idea
+.vscode
+
+# Env
+.env
+.env.*
+!.env.example
