@@ -84,53 +84,108 @@ export default function Home() {
   const [ladderWin, setLadderWin] = useState<Record<string, LadderWin>>({});
   const scrollers = useRef<Record<string, HTMLDivElement | null>>({});
 
-  /* ---------- sockets ---------- */
-  useEffect(() => {
-    const s = io("http://localhost:4000", { transports: ["websocket"] });
-    setSocket(s);
-    s.on("connect", () => setConnected(true));
-    s.on("disconnect", () => setConnected(false));
+/* ---------- sockets ---------- */
+useEffect(() => {
+  // Avoid double-connect in React StrictMode (Next dev)
+  let isActive = true;
 
-    s.on("admin_ack", (res: any) => {
-      if (!res?.ok) return alert(res?.error || "Admin create failed");
-      setIsAdmin(true);
-      setDisplayName("Admin");
-      setMode("game");
-      if (res.markets) setMarkets(res.markets);
-    });
-    s.on("join_ack", (res: any) => {
-      if (!res?.ok) return alert(res?.error || "Join failed");
-      setIsAdmin(false);
-      setDisplayName(res.name || "");
-      setMode("game");
-      if (res.markets) setMarkets(res.markets);
-    });
+  // Prefer env var in prod; fallback to localhost for local dev
+  const serverUrl =
+    process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:4000";
 
-    s.on("markets_meta", (p: { markets: MarketMeta[] }) => setMarkets(p.markets || []));
-    s.on("book_snapshot", (snap: Book) => setBooks((prev) => ({ ...prev, [snap.symbol]: snap })));
-    s.on("position", (p: { symbol: string; qty: number; cash: number }) =>
-      setPositions((prev) => ({ ...prev, [p.symbol]: { qty: p.qty, cash: p.cash } })),
-    );
-    s.on("user_summary", (u: { symbol: string; position: number; avgBuy: number; avgSell: number; buyVol: number; sellVol: number }) =>
-      setSumm((prev) => ({ ...prev, [u.symbol]: u })),
-    );
-    s.on("pnl_implied", (p: { total: number }) => setImplied(p.total || 0));
+  const s = io(serverUrl, { transports: ["websocket"] });
+  setSocket(s);
 
-    s.on("events", (arr: { ts: number; text: string }[]) => setEvents(arr || []));
-    s.on("event", (e: { ts: number; text: string }) => setEvents((prev) => [...prev, e].slice(-200)));
-    s.on("trade", (t: { ts: number; symbol: string; price: number; qty: number }) =>
-      setTape((prev) => [t, ...prev].slice(0, 500)),
-    );
+  // --- connection status ---
+  s.on("connect", () => isActive && setConnected(true));
+  s.on("disconnect", () => isActive && setConnected(false));
+  s.on("connect_error", (err) => {
+    console.error("Socket connect_error:", err?.message || err);
+  });
 
-    s.on("order_reject", (r: any) => {
-      if (r?.reason === "pos_limit") alert("Cannot execute since doing trade would put you over position limit.");
-    });
+  // --- auth / join acks ---
+  s.on("admin_ack", (res: any) => {
+    if (!isActive) return;
+    if (!res?.ok) return alert(res?.error || "Admin create failed");
+    setIsAdmin(true);
+    setDisplayName("Admin");
+    setMode("game");
+    if (res.markets) setMarkets(res.markets);
+  });
 
-    return () => {
-      s.removeAllListeners();
-      s.disconnect();
-    };
-  }, []);
+  s.on("join_ack", (res: any) => {
+    if (!isActive) return;
+    if (!res?.ok) return alert(res?.error || "Join failed");
+    setIsAdmin(false);
+    setDisplayName(res.name || "");
+    setMode("game");
+    if (res.markets) setMarkets(res.markets);
+  });
+
+  // --- streams / updates ---
+  s.on("markets_meta", (p: { markets: MarketMeta[] }) => {
+    if (!isActive) return;
+    setMarkets(p.markets || []);
+  });
+
+  s.on("book_snapshot", (snap: Book) => {
+    if (!isActive) return;
+    setBooks((prev) => ({ ...prev, [snap.symbol]: snap }));
+  });
+
+  s.on("position", (p: { symbol: string; qty: number; cash: number }) => {
+    if (!isActive) return;
+    setPositions((prev) => ({ ...prev, [p.symbol]: { qty: p.qty, cash: p.cash } }));
+  });
+
+  s.on(
+    "user_summary",
+    (u: {
+      symbol: string;
+      position: number;
+      avgBuy: number;
+      avgSell: number;
+      buyVol: number;
+      sellVol: number;
+    }) => {
+      if (!isActive) return;
+      setSumm((prev) => ({ ...prev, [u.symbol]: u }));
+    },
+  );
+
+  s.on("pnl_implied", (p: { total: number }) => {
+    if (!isActive) return;
+    setImplied(p.total || 0);
+  });
+
+  s.on("events", (arr: { ts: number; text: string }[]) => {
+    if (!isActive) return;
+    setEvents(arr || []);
+  });
+
+  s.on("event", (e: { ts: number; text: string }) => {
+    if (!isActive) return;
+    setEvents((prev) => [...prev, e].slice(-200));
+  });
+
+  s.on("trade", (t: { ts: number; symbol: string; price: number; qty: number }) => {
+    if (!isActive) return;
+    setTape((prev) => [t, ...prev].slice(0, 500));
+  });
+
+  s.on("order_reject", (r: any) => {
+    if (!isActive) return;
+    if (r?.reason === "pos_limit")
+      alert("Cannot execute since doing trade would put you over position limit.");
+  });
+
+  // cleanup
+  return () => {
+    isActive = false;
+    s.removeAllListeners();
+    s.disconnect();
+  };
+}, []);
 
   /* ---------- actions ---------- */
 
