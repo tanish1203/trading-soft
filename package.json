@@ -2,7 +2,7 @@
   "name": "trading-soft",
   "version": "1.0.0",
   "private": true,
-  "description": "Full-stack market making simulator with Next.js, Express, and Socket.io.",
+  "description": "Full-stack market-making simulator with Next.js, Express, and Socket.io.",
   "author": "Tanish Shroff <tanish1203@gmail.com>",
   "license": "MIT",
   "repository": {
@@ -10,7 +10,7 @@
     "url": "https://github.com/tanish1203/trading-soft.git"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "scripts": {
     "install": "cd client && npm install && cd ../server && npm install",
@@ -19,11 +19,11 @@
     "dev": "cd server && npm run dev"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.19.2",
     "next": "^14.2.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "socket.io": "^4.7.5",
-    "cors": "^2.8.5"
+    "socket.io": "^4.7.5"
   }
 }
