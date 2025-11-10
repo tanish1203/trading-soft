@@ -23,6 +23,11 @@ const io = new Server(server, {
   transports: ["websocket", "polling"],
 });
 
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, ts: Date.now(), uptime: process.uptime() });
+});
+
+
 /*
 game = {
   markets: Map<symbol, {
