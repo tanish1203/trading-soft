@@ -6,12 +6,17 @@
   "scripts": {
     "install": "cd client && npm install && cd ../server && npm install",
     "build": "cd client && npm run build",
-    "start": "cd server && npm run start"
+    "start": "node server/index.js"
   },
+  "engines": { "node": ">=18 <23" },
   "dependencies": {
-    "concurrently": "^9.2.1",
-    "rxjs": "^7.8.2",
     "chalk": "^4.1.2",
+    "concurrently": "^9.2.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "next": "^16.0.1",
+    "rxjs": "^7.8.2",
+    "socket.io": "^4.7.5",
     "yargs": "^17.7.2"
   }
 }
